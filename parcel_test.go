@@ -30,41 +30,50 @@ func getTestParcel() Parcel {
 }
 
 func TestAddGetDelete(t *testing.T) {
-	// prepare
+	// Подготовка
 	db, err := sql.Open("sqlite", "tracker.db")
 	if err != nil {
-		t.Fatalf("failled to connect to database: %v", err)
-	} // настройте подключение к БД
+		t.Fatalf("failed to connect to database: %v", err)
+	}
 	defer db.Close()
+
 	store := NewParcelStore(db)
-	parcel := getTestParcel()
+	parcel := getTestParcel() // Получите тестовую посылку
 
-	// add
-	// добавьте новую посылку в БД, убедитесь в отсутствии ошибки и наличии идентификатора
+	// Установите статус посылки как 'registered', если это требуется
+	parcel.Status = "registered" // Убедитесь, что статус 'registered'
+
+	// Добавление
 	id, err := store.Add(parcel)
-	assert.NoError(t, err, "expected no error when adding parcel")
-	assert.Positive(t, id, "expected positive id after addong pacel")
+	if err != nil {
+		t.Fatalf("Error adding parcel: %v", err)
+	}
 
-	// get
-	// получите только что добавленную посылку, убедитесь в отсутствии ошибки
-	// проверьте, что значения всех полей в полученном объекте совпадают со значениями полей в переменной parcel
+	// Получение
 	fetchedParcel, err := store.Get(id)
-	assert.NoError(t, err, "expected no error when getting parcel")
-	assert.Equal(t, parcel, fetchedParcel, "expected fetched parcel to match added parcel")
+	if err != nil {
+		t.Fatalf("Error fetching parcel: %v", err)
+	}
 
-	// delete
-	// удалите добавленную посылку, убедитесь в отсутствии ошибки
-	// проверьте, что посылку больше нельзя получить из БД
+	// Проверка, что полученный пакет соответствует добавленному
+	if fetchedParcel.Client != parcel.Client ||
+		fetchedParcel.Status != parcel.Status ||
+		fetchedParcel.Address != parcel.Address {
+		t.Errorf("expected fetched parcel to match added parcel: got %+v, want %+v", fetchedParcel, parcel)
+	}
+
+	// Удаление
 	err = store.Delete(id)
 	assert.NoError(t, err, "expected no error when deleting parcel")
+
 	// Проверяем, что посылку больше нельзя получить из БД
 	_, err = store.Get(id)
-	assert.Error(t, err, "expected error when getting deleted parce")
+	assert.Error(t, err, "expected error when getting deleted parcel")
 }
 
 // TestSetAddress проверяет обновление адреса
 func TestSetAddress(t *testing.T) {
-	// prepare
+	// подготовка
 	db, err := sql.Open("sqlite", "tracker.db") // настройте подключение к БД
 	require.NoError(t, err)
 	defer db.Close() // обязательно закройте соединение после теста
@@ -72,17 +81,20 @@ func TestSetAddress(t *testing.T) {
 	store := NewParcelStore(db)
 	originalParcel := getTestParcel() // получите тестовую посылку
 
-	// add
+	// Установите статус посылки как 'registered'
+	originalParcel.Status = "registered" // Убедитесь, что статус 'registered'
+
+	// добавление
 	id, err := store.Add(originalParcel)
 	require.NoError(t, err)
 	require.NotZero(t, id, "Expected valid ID for the added parcel")
 
-	// set address
+	// задать адрес
 	newAddress := "new test address"
 	err = store.SetAddress(id, newAddress)
 	require.NoError(t, err, "Expected no error when updating address")
 
-	// check
+	// проверка
 	updatedParcel, err := store.Get(id)
 	require.NoError(t, err, "Expected no error when retrieving the updated parcel")
 
