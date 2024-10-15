@@ -38,23 +38,21 @@ func TestAddGetDelete(t *testing.T) {
 	store := NewParcelStore(db)
 	parcel := getTestParcel() // Получите тестовую посылку
 
+	// Установите статус посылки как 'registered'
+	parcel.Status = "registered"
+
 	// Установите статус посылки как 'registered', если это требуется
 	parcel.Status = "registered" // Убедитесь, что статус 'registered'
 
 	// Добавление
+	// Добавление
 	id, err := store.Add(parcel)
-	if err != nil {
-		t.Fatalf("Error adding parcel: %v", err)
-	}
-	if id == 0 {
-		t.Fatalf("Error id. Id can't be 0.")
-	}
+	require.NoError(t, err)
+	require.NotZero(t, id, "Error id. Id can't be 0.")
 
 	// Получение
 	fetchedParcel, err := store.Get(id)
-	if err != nil {
-		t.Fatalf("Error fetching parcel: %v", err)
-	}
+	require.NoError(t, err)
 
 	// Получение
 	fetchedParcel, err = store.Get(id)
