@@ -10,8 +10,8 @@ type ParcelStore struct {
 }
 
 // NewParcelStore создает новый экземпляр ParcelStore.
-func NewParcelStore(db *sql.DB) *ParcelStore {
-	return &ParcelStore{db: db}
+func NewParcelStore(db *sql.DB) ParcelStore {
+	return ParcelStore{db: db}
 }
 
 // Add добавляет новый пакет в базу данных и возвращает ID нового пакета или ошибку.
@@ -36,7 +36,7 @@ func (s *ParcelStore) Get(number int) (Parcel, error) {
 	query := "SELECT number, client, address, status, created_at FROM parcel WHERE number = ?"
 	err := s.db.QueryRow(query, number).Scan(&p.Number, &p.Client, &p.Address, &p.Status, &p.CreatedAt)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			return Parcel{}, errors.New("пакет не найден")
 		}
 		return Parcel{}, err
@@ -75,23 +75,25 @@ func (s *ParcelStore) SetStatus(number int, status string) error {
 }
 
 // SetAddress изменяет адрес пакета, если его статус 'registered'.
+// SetAddress изменяет адрес пакета, если его статус 'registered'.
 func (s *ParcelStore) SetAddress(number int, address string) error {
-	// Сначала проверяем статус посылки
-	var status string
-	query := "SELECT status FROM parcel WHERE number = ?"
-	err := s.db.QueryRow(query, number).Scan(&status)
+	query := "UPDATE parcel SET address = ? WHERE number = ? AND status = 'registered'"
+	result, err := s.db.Exec(query, address, number)
 	if err != nil {
 		return err
 	}
 
-	if status != "registered" {
+	// Проверяем количество затронутых строк
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected == 0 {
 		return errors.New("адрес может быть изменён только если статус 'registered'")
 	}
 
-	// Изменяем адрес только если статус 'registered'
-	query = "UPDATE parcel SET address = ? WHERE number = ?"
-	_, err = s.db.Exec(query, address, number)
-	return err
+	return nil
 }
 
 // Delete удаляет пакет, если его статус 'registered'.

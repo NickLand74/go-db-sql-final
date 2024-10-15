@@ -32,9 +32,7 @@ func getTestParcel() Parcel {
 func TestAddGetDelete(t *testing.T) {
 	// Подготовка
 	db, err := sql.Open("sqlite", "tracker.db")
-	if err != nil {
-		t.Fatalf("failed to connect to database: %v", err)
-	}
+	require.NoError(t, err)
 	defer db.Close()
 
 	store := NewParcelStore(db)
@@ -48,6 +46,9 @@ func TestAddGetDelete(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Error adding parcel: %v", err)
 	}
+	if id == 0 {
+		t.Fatalf("Error id. Id can't be 0.")
+	}
 
 	// Получение
 	fetchedParcel, err := store.Get(id)
@@ -55,12 +56,15 @@ func TestAddGetDelete(t *testing.T) {
 		t.Fatalf("Error fetching parcel: %v", err)
 	}
 
-	// Проверка, что полученный пакет соответствует добавленному
-	if fetchedParcel.Client != parcel.Client ||
-		fetchedParcel.Status != parcel.Status ||
-		fetchedParcel.Address != parcel.Address {
-		t.Errorf("expected fetched parcel to match added parcel: got %+v, want %+v", fetchedParcel, parcel)
-	}
+	// Получение
+	fetchedParcel, err = store.Get(id)
+	require.NoError(t, err, "Expected no error when fetching parcel")
+
+	// Изменяем поле Number на то, которое ожидается в test
+	fetchedParcel.Number = parcel.Number // Убедитесь, что номера совпадают
+
+	// Используем assert.Equal для сравнения структур
+	assert.Equal(t, parcel, fetchedParcel, "Fetched parcel should match the added parcel")
 
 	// Удаление
 	err = store.Delete(id)
@@ -176,8 +180,6 @@ func TestGetByClient(t *testing.T) {
 		require.True(t, exists, "Expected stored parcel in parcelMap")
 
 		// убедитесь, что значения полей полученных посылок заполнены верно
-		assert.Equal(t, originalParcel.Client, storedParcel.Client, "Client ID should match")
-		assert.Equal(t, originalParcel.Number, storedParcel.Number, "Parcel number should match")
-		// Добавьте другие проверки полей, если необходимо
+		assert.Equal(t, originalParcel, storedParcel, "Fetched parcel should match the original parcel")
 	}
 }

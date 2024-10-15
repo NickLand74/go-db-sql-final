@@ -10,9 +10,9 @@ import (
 )
 
 const (
-	ParcelStatusRegistered = "зарегистрирована"
-	ParcelStatusSent       = "отправлена"
-	ParcelStatusDelivered  = "доставлена"
+	ParcelStatusRegistered = "registered"
+	ParcelStatusSent       = "sent"
+	ParcelStatusDelivered  = "delivered"
 )
 
 type Parcel struct {
@@ -104,7 +104,7 @@ func main() {
 	defer db.Close()
 
 	store := NewParcelStore(db)
-	service := NewParcelService(*store)
+	service := NewParcelService(store)
 
 	client := 1
 	address := "Псков, д. Пушкина, ул. Колотушкина, д. 5"
